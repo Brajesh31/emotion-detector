@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Emotion Speech Detector</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Background Animation -->
+    <div class="background-animation">
+        <div class="floating-shape shape-1"></div>
+        <div class="floating-shape shape-2"></div>
+        <div class="floating-shape shape-3"></div>
+        <div class="floating-shape shape-4"></div>
+        <div class="floating-shape shape-5"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Header Section -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-brain"></i>
+                <h1>AI Emotion Detector</h1>
+            </div>
+            <p class="subtitle">Advanced Speech Emotion Analysis</p>
+        </header>
+
+        <!-- Main Content -->
+        <div class="content-wrapper">
+            <!-- Recording Section -->
+            <div class="recording-section glass-morphism">
+                <div class="section-header">
+                    <i class="fas fa-microphone-alt"></i>
+                    <h2>Voice Recording</h2>
+                </div>
+                
+                <div class="recording-visualizer">
+                    <div class="wave-container">
+                        <div class="wave"></div>
+                        <div class="wave"></div>
+                        <div class="wave"></div>
+                        <div class="wave"></div>
+                        <div class="wave"></div>
+                    </div>
+                </div>
+
+                <div class="recording-controls">
+                    <button class="btn btn-record" onclick="startRecording()" id="recordBtn">
+                        <i class="fas fa-microphone"></i>
+                        <span>Start Recording</span>
+                    </button>
+                    <button class="btn btn-stop" onclick="stopRecording()" id="stopRecordBtn" disabled>
+                        <i class="fas fa-stop"></i>
+                        <span>Stop Recording</span>
+                    </button>
+                </div>
+
+                <div class="upload-section">
+                    <div class="upload-area" onclick="document.getElementById('audioUpload').click()">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Or click to upload audio file</p>
+                        <span class="file-types">MP3, WAV, M4A supported</span>
+                    </div>
+                    <input type="file" accept="audio/*" id="audioUpload" onchange="handleFileUpload(event)" hidden>
+                </div>
+
+                <audio id="audioPlayer" controls class="audio-player"></audio>
+            </div>
+
+            <!-- Analysis Section -->
+            <div class="analysis-section glass-morphism">
+                <div class="section-header">
+                    <i class="fas fa-chart-line"></i>
+                    <h2>Emotion Analysis</h2>
+                </div>
+
+                <button class="btn btn-analyze" onclick="processAudio()">
+                    <i class="fas fa-brain"></i>
+                    <span>Analyze Emotion</span>
+                    <div class="btn-ripple"></div>
+                </button>
+
+                <div id="loadingSpinner" class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Analyzing your emotion...</p>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultContainer" class="emotion-result">
+                    <div class="result-header">
+                        <div id="emotionIcon" class="emotion-icon">🎭</div>
+                        <h3 id="emotionText">Ready to Analyze</h3>
+                    </div>
+                    
+                    <div class="emotion-details">
+                        <div class="detail-card">
+                            <i class="fas fa-heartbeat"></i>
+                            <div class="detail-content">
+                                <span class="detail-label">Status</span>
+                                <span id="emotionDescription" class="detail-value">Waiting for analysis</span>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-card">
+                            <i class="fas fa-percentage"></i>
+                            <div class="detail-content">
+                                <span class="detail-label">Confidence</span>
+                                <span id="confidenceLevel" class="detail-value">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="emotion-meter">
+                        <div class="meter-label">Emotion Intensity</div>
+                        <div class="meter-bar">
+                            <div id="emotionMeterFill" class="meter-fill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Powered by Advanced AI • Real-time Emotion Detection</p>
+        </footer>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordedBlob = null;
+        let isRecording = false;
+
+        function startRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    isRecording = true;
+
+                    // Update UI
+                    updateRecordingUI(true);
+                    startWaveAnimation();
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        recordedBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        const audioUrl = URL.createObjectURL(recordedBlob);
+                        const audioPlayer = document.getElementById('audioPlayer');
+                        audioPlayer.src = audioUrl;
+                        audioPlayer.style.display = 'block';
+                        
+                        // Stop UI updates
+                        updateRecordingUI(false);
+                        stopWaveAnimation();
+                        isRecording = false;
+                    };
+
+                    mediaRecorder.start();
+                })
+                .catch(error => {
+                    console.error('Error accessing microphone', error);
+                    showError('Microphone access denied. Please allow microphone access and try again.');
+                });
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        function updateRecordingUI(recording) {
+            const recordBtn = document.getElementById('recordBtn');
+            const stopBtn = document.getElementById('stopRecordBtn');
+            
+            if (recording) {
+                recordBtn.disabled = true;
+                recordBtn.classList.add('recording');
+                stopBtn.disabled = false;
+                stopBtn.classList.add('active');
+            } else {
+                recordBtn.disabled = false;
+                recordBtn.classList.remove('recording');
+                stopBtn.disabled = true;
+                stopBtn.classList.remove('active');
+            }
+        }
+
+        function startWaveAnimation() {
+            const waves = document.querySelectorAll('.wave');
+            waves.forEach((wave, index) => {
+                wave.style.animationDelay = `${index * 0.1}s`;
+                wave.classList.add('active');
+            });
+        }
+
+        function stopWaveAnimation() {
+            const waves = document.querySelectorAll('.wave');
+            waves.forEach(wave => {
+                wave.classList.remove('active');
+            });
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                recordedBlob = file;
+                const audioPlayer = document.getElementById('audioPlayer');
+                audioPlayer.src = URL.createObjectURL(file);
+                audioPlayer.style.display = 'block';
+                
+                // Show file upload success
+                showSuccess('Audio file uploaded successfully!');
+            }
+        }
+
+        function processAudio() {
+            if (!recordedBlob) {
+                showError('Please record or upload an audio file first.');
+                return;
+            }
+
+            // Show loading
+            showLoading(true);
+
+            const formData = new FormData();
+            formData.append('audio', recordedBlob);
+
+            fetch('http://127.0.0.1:5000/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                showLoading(false);
+                displayResults(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showLoading(false);
+                showError('Error analyzing audio. Please try again.');
+            });
+        }
+
+        function displayResults(data) {
+            const emotionIcon = document.getElementById('emotionIcon');
+            const emotionText = document.getElementById('emotionText');
+            const emotionDescription = document.getElementById('emotionDescription');
+            const confidenceLevel = document.getElementById('confidenceLevel');
+            const resultContainer = document.getElementById('resultContainer');
+            const meterFill = document.getElementById('emotionMeterFill');
+
+            // Update content
+            emotionIcon.textContent = getEmotionIcon(data.emotion);
+            emotionText.textContent = formatEmotionName(data.emotion);
+            emotionDescription.textContent = data.status;
+            confidenceLevel.textContent = '85%'; // Mock confidence - you can calculate this from your model
+            
+            // Update emotion meter
+            const intensity = getEmotionIntensity(data.emotion);
+            meterFill.style.width = intensity + '%';
+            meterFill.className = `meter-fill ${getEmotionClass(data.emotion)}`;
+
+            // Show results with animation
+            resultContainer.classList.add('show-result');
+            
+            // Add result animation
+            setTimeout(() => {
+                resultContainer.classList.add('animate-in');
+            }, 100);
+        }
+
+        function showLoading(show) {
+            const spinner = document.getElementById('loadingSpinner');
+            spinner.style.display = show ? 'flex' : 'none';
+        }
+
+        function showError(message) {
+            // You can implement a toast notification system here
+            alert(message);
+        }
+
+        function showSuccess(message) {
+            // You can implement a toast notification system here
+            console.log(message);
+        }
+
+        function getEmotionIcon(emotion) {
+            const emotionIcons = {
+                "OAF_happy": "😊", "YAF_happy": "😄",
+                "OAF_Sad": "😢", "YAF_sad": "😭",
+                "OAF_angry": "😠", "YAF_angry": "🤬",
+                "OAF_neutral": "😐", "YAF_neutral": "😑",
+                "OAF_Fear": "😨", "YAF_fear": "😰",
+                "OAF_disgust": "🤢", "YAF_disgust": "🤮",
+                "OAF_surprised": "😲", "YAF_surprised": "😱"
+            };
+            return emotionIcons[emotion] || "🎭";
+        }
+
+        function formatEmotionName(emotion) {
+            // Remove prefixes and capitalize
+            return emotion.replace(/^(OAF_|YAF_)/, '').replace(/^\w/, c => c.toUpperCase());
+        }
+
+        function getEmotionIntensity(emotion) {
+            // Mock intensity calculation - you can make this more sophisticated
+            const intensityMap = {
+                "angry": 90, "fear": 85, "sad": 70,
+                "disgust": 75, "happy": 80, "surprised": 85,
+                "neutral": 30
+            };
+            const baseEmotion = emotion.replace(/^(OAF_|YAF_)/, '').toLowerCase();
+            return intensityMap[baseEmotion] || 50;
+        }
+
+        function getEmotionClass(emotion) {
+            const baseEmotion = emotion.replace(/^(OAF_|YAF_)/, '').toLowerCase();
+            if (['angry', 'fear', 'sad', 'disgust'].includes(baseEmotion)) {
+                return 'negative';
+            } else if (['happy', 'surprised'].includes(baseEmotion)) {
+                return 'positive';
+            }
+            return 'neutral';
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add any initialization code here
+        });
+    </script>
+</body>
+</html>
