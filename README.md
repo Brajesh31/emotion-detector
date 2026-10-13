@@ -100,3 +100,5 @@ python predict.py --file test_audio/sample.wav
 - [TESS Dataset](https://dataverse.scholarsportal.info/dataset.xhtml?persistentId=doi:10.5683/SP2/E8H2MF)
 - Papers on SEDNet and Speech Emotion Recognition
 - Librosa and TensorFlow documentation
+
+Last updated: 2026-10-13 15:57 UTC
