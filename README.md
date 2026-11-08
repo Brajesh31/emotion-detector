@@ -101,4 +101,4 @@ python predict.py --file test_audio/sample.wav
 - Papers on SEDNet and Speech Emotion Recognition
 - Librosa and TensorFlow documentation
 
-Last updated: 2026-11-07 21:24 UTC
+Last updated: 2026-11-08 01:02 UTC
